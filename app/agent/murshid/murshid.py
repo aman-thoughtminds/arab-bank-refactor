@@ -1,20 +1,22 @@
 from datetime import date
 from typing import Annotated, Sequence, TypedDict
 
+from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import BaseMessage, SystemMessage
-from langchain_community.chat_models.azure_openai import AzureChatOpenAI
-from langfuse import observe
+
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langgraph.graph import END, START, StateGraph
+from langgraph.graph import START, END, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
 from app.db import AsyncPostgresPool
 from app.core import settings
 from app.agent.murshid.prompt import AGENT_MURSHID_PROMPT_TEMPLATE
-from app.agent.murshid.tools import similarity_search
+from app.agent.murshid.tools import general_similarity_search
 
+
+# Configure your base client (GPT-4o or GPT-4o-mini)
 azure_openai_client = AzureChatOpenAI(
     azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
     api_key=settings.AZURE_OPENAI_KEY,
@@ -40,7 +42,13 @@ class AgentMurshid:
             return
 
         self.client = client or azure_openai_client
-        self.tools = [similarity_search]
+        self.tools = [general_similarity_search]
+
+        # When tools are required
+        self.client_with_tool = self.client.bind_tools(
+            tools=self.tools, tool_choice="auto"
+        )
+
         self.app = None
         self._initialized = True
 
@@ -50,18 +58,25 @@ class AgentMurshid:
                 current_date=date.today().isoformat(),
             )
         )
+
         agent_state["messages"] = [system_prompt] + agent_state["messages"]
 
-        response = await self.langfuse_invoke(agent_state["messages"])
+        response = await self.client_with_tool.ainvoke(agent_state["messages"])
+        # print(f"LLM response: {response}")
         return {"messages": [response]}
 
-    @observe(name="murshid-agent-invoke")
-    async def langfuse_invoke(self, messages: Sequence[BaseMessage]) -> BaseMessage:
-        return await self.client.ainvoke(messages)
+    # @observe(name="murshid-agent-invoke")
+    # async def langfuse_invoke(self, messages: Sequence[BaseMessage]) -> BaseMessage:
+    #     return await self.client.ainvoke(messages)
 
     def should_continue(self, agent_state: AgentState) -> str:
         last_message = agent_state["messages"][-1]
-        if getattr(last_message, "tool", None):
+        # print("Last message:", last_message)
+
+        # if isinstance(last_message, AIMessage) and getattr(
+        if hasattr(last_message, "tool_calls") and len(last_message.tool_calls) > 0:
+            # last_message, "tool_calls", None
+            # ):
             return "continue"
         return "end"
 
@@ -72,10 +87,17 @@ class AgentMurshid:
             await memory.adelete_thread(thread_id=thread_id)
 
     async def build_graph(self):
-        tool_call = ToolNode(tools=self.tools)
+        # Step 1: Define the tool execution node
+        tool_node = ToolNode(tools=self.tools)
+
+        # Step 2: Define the state graph
         graph = StateGraph(self.AgentState)
+
+        # Step 3: Register nodes
         graph.add_node("llm", self.llm_node)
-        graph.add_node("tools", tool_call)
+        graph.add_node("tools", tool_node)
+
+        # Step 4: Add flow edges
         graph.add_edge(START, "llm")
         graph.add_conditional_edges(
             "llm",
@@ -87,6 +109,7 @@ class AgentMurshid:
         )
         graph.add_edge("tools", "llm")
 
+        # Step 5: Register checkpointing
         pool = await AsyncPostgresPool.get_pool()
         async with pool.connection() as connection:
             memory = AsyncPostgresSaver(conn=connection)
@@ -94,7 +117,7 @@ class AgentMurshid:
             self.app = graph.compile(checkpointer=memory)
 
 
-# Factory
+# Factory function
 async def get_agent_murshid() -> AgentMurshid:
     agent_murshid = AgentMurshid()
     if agent_murshid.app is None:

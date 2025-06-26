@@ -15,5 +15,4 @@ async def generate_chat_response(
             },
             config={"configurable": {"thread_id": thread_id}},
         )
-        breakpoint()
         return result
