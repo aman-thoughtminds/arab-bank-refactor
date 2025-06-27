@@ -14,6 +14,7 @@ from app.db import AsyncPostgresPool
 from app.core import settings
 from app.agent.murshid.prompt import AGENT_MURSHID_PROMPT_TEMPLATE
 from app.agent.murshid.tools import general_similarity_search
+from app.utils.perf import timer
 
 
 # Configure your base client (GPT-4o or GPT-4o-mini)
@@ -52,6 +53,7 @@ class AgentMurshid:
         self.app = None
         self._initialized = True
 
+    @timer
     async def llm_node(self, agent_state: AgentState) -> AgentState:
         system_prompt = SystemMessage(
             content=await AGENT_MURSHID_PROMPT_TEMPLATE.aformat(
@@ -69,6 +71,7 @@ class AgentMurshid:
     # async def langfuse_invoke(self, messages: Sequence[BaseMessage]) -> BaseMessage:
     #     return await self.client.ainvoke(messages)
 
+    @timer
     def should_continue(self, agent_state: AgentState) -> str:
         last_message = agent_state["messages"][-1]
         # print("Last message:", last_message)
@@ -86,6 +89,7 @@ class AgentMurshid:
             memory = AsyncPostgresSaver(conn=connection)
             await memory.adelete_thread(thread_id=thread_id)
 
+    @timer
     async def build_graph(self):
         # Step 1: Define the tool execution node
         tool_node = ToolNode(tools=self.tools)
@@ -118,6 +122,7 @@ class AgentMurshid:
 
 
 # Factory function
+@timer
 async def get_agent_murshid() -> AgentMurshid:
     agent_murshid = AgentMurshid()
     if agent_murshid.app is None:

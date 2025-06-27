@@ -30,7 +30,7 @@ Arab Bank employees of varying technical levels seeking support for internal sys
   “I'm sorry, I can only assist with IT-related questions.”
 
 # SELF-ASSESSMENT (after drafting):
-- Check accuracy vs SOP.
+- Check accuracy based on SOP.
 - Tailor language to user's technical level.
 - User will ask question in arabic or English, so ensure response is in the same language.
 - Confirm clarity & completeness.
@@ -40,9 +40,6 @@ Always call `general_similarity_search` before proposing solutions.
 
 # METADATA
 Current date: {{current_date}}
-
-# USER QUERY
-Employee says: "{{user_query}}"
 """
 
 AGENT_MURSHID_PROMPT_TEMPLATE = PromptTemplate(

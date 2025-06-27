@@ -5,6 +5,11 @@ build/
 dist/
 wheels/
 *.egg-info
+.mypy_cache/
+*.pyo
+*.pyd
+.arab-bank
+.ruff_cache/
 
 # Virtual environments
 .venv

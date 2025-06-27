@@ -5,3 +5,7 @@ from langchain_core.messages import BaseMessage
 
 class MessagesResponse(BaseModel):
     messages: List[BaseMessage]
+
+
+class ChatRequest(BaseModel):
+    query: str

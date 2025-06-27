@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     PINECONE_NAMESPACE: str
     PINECONE_INDEX_NAME: str
     PINECONE_API_KEY: str
+    PINECONE_HOST_URL: str
 
     AZURE_TRANSLATE_KEY: str
     AZURE_TRANSLATE_ENDPOINT: str

@@ -1,4 +1,5 @@
 # type: ignore
+from time import perf_counter
 from typing import Annotated
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import InjectedToolCallId, tool
@@ -7,7 +8,7 @@ from langgraph.types import Command
 
 
 from app.core.config import settings
-from app.agent.object_facotry import pc_asyncio, async_openai_embedding_client
+from app.agent.object_facotry import async_openai_embedding_client, pc_asyncio
 
 
 # @tool
@@ -97,18 +98,16 @@ async def general_similarity_search(
 
     try:
         # Step 1: Get embedding
-        # breakpoint()
+        start = perf_counter()
         vector_response = await async_openai_embedding_client.embeddings.create(
             model="text-embedding-ada-002", input=query
         )
         query_vector = vector_response.data[0].embedding
 
         # Step 2: Get Pinecone index
-        index_description = await pc_asyncio.describe_index(
-            name=settings.PINECONE_INDEX_NAME
-        )
         index = pc_asyncio.IndexAsyncio(
-            host=index_description.host, name=settings.PINECONE_INDEX_NAME
+            host=settings.PINECONE_HOST_URL,
+            name=settings.PINECONE_INDEX_NAME,
         )
 
         # Step 3: Query Pinecone
@@ -150,9 +149,14 @@ async def general_similarity_search(
         ]
 
         # breakpoint()
+        print(
+            f"Similarity search took {perf_counter() - start:.4f} seconds"
+        )  # Debugging line
         return Command(update=agent_state)
 
     except Exception as e:
         agent_state["messages"] = [ToolMessage(content=e, tool_call_id=tool_call_id)]
         breakpoint()
         return Command(update=agent_state)
+    finally:
+        await pc_asyncio.close()
