@@ -8,7 +8,7 @@ from langgraph.types import Command
 
 
 from app.core.config import settings
-from app.agent.object_facotry import async_openai_embedding_client, pc_asyncio
+from app.agent.clients import async_openai_embedding_client, pc_asyncio
 
 
 # @tool
