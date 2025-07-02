@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     LANGFUSE_PUBLIC_KEY: str = ""
 
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
+    SMTP_PASSWORD: str
+    SMTP_USERNAME: str
+    SMTP_SERVER: str
+    SMTP_PORT: int
 
     OPENAI_API_KEY: str
     OPENAI_ASSISTANT_ID: str

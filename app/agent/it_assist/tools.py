@@ -25,6 +25,7 @@ from app.agent.clients import async_openai_embedding_client, pc_asyncio
 #     if not query.strip():
 #         new_messages.append(
 #             ToolMessage(content="Query is empty.", tool_call_id=tool_call_id)
+
 #         )
 #     else:
 #         pinecone_filter = {}
@@ -94,7 +95,7 @@ async def general_similarity_search(
     agent_state: Annotated[dict, InjectedState],
     tool_call_id: Annotated[str, InjectedToolCallId],
 ) -> Command:
-    """Performs similarity search across general-purpose namespaces using Pinecone's async gRPC client."""
+    """Performs similarity search across general-purpose namespaces using Pinecone's async client."""
 
     try:
         # Step 1: Get embedding

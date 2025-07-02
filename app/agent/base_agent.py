@@ -17,6 +17,20 @@ from app.db import AsyncPostgresPool
 
 class BaseAgent(AbstractAgent):
     _instance: Dict[Type["BaseAgent"], "BaseAgent"] = {}
+    _bypass_sigleton: bool = False
+    """
+    # Normal singleton usage
+    agent1 = BaseAgent()
+
+    # Force recreation (e.g., in tests)
+    BaseAgent.reset_instance()
+    agent2 = BaseAgent()  # New instance
+
+    # Temporary bypass of singleton
+    BaseAgent.set_bypass_singleton(True)
+    agent3 = BaseAgent()  # Always new instance while bypass is True
+    BaseAgent.set_bypass_singleton(False)
+    """
 
     def __new__(cls, *args, **kwargs):
         if cls not in cls._instance:
@@ -41,6 +55,17 @@ class BaseAgent(AbstractAgent):
         self.app = None
         self.memory = memory
         self._initialized: bool = True
+
+    @classmethod
+    def reset_instance(cls):
+        """Reset the singleton instance - allows force reinitialization."""
+        if cls in cls._instance:
+            del cls._instance[cls]
+
+    @classmethod
+    def set_bypass_singleton(cls, state: bool):
+        """Enable or disable singleton behavior"""
+        cls._bypass_sigleton = state
 
     @property
     def AgentState(self) -> Type[AgentState]:
@@ -72,17 +97,6 @@ class BaseAgent(AbstractAgent):
         async with pool.connection() as connection:
             memory = AsyncPostgresSaver(conn=connection)
             await memory.adelete_thread(thread_id=thread_id)
-
-    # async def get_memory(self) -> BaseCheckpointSaver:
-    #     """Overrideable default memory backend"""
-    #     if self.memory:
-    #         return self.memory
-    #     pool = await AsyncPostgresPool.get_pool()
-    #     async with pool.connection() as connection:
-    #         memory = AsyncPostgresSaver(conn=connection)
-    #         await memory.setup()
-    #         self.memory = memory
-    #         return memory
 
     async def build_graph(self):
         if not self.memory:

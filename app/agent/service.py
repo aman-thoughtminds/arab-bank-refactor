@@ -20,8 +20,16 @@ async def generate_chat_response(
 
 
 async def generate_assit_agent_response(
-    user_query: str,
-    thread_id: str,
-) -> dict | Any:
+    user_query: str, thread_id: str, agent_name: str = "assist"
+) -> Any:
     """interface for assist agent. This will help you send email"""
-    pass
+    agent = await get_agent(agent_name)
+    response = await asyncio.wait_for(
+        agent.app.ainvoke(
+            {"messages": [HumanMessage(content=user_query)]},
+            config={"configurable": {"thread_id": thread_id}},
+        ),
+        timeout=30,  # seconds
+    )
+
+    return response
