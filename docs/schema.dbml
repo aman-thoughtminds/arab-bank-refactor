@@ -1,0 +1,62 @@
+Project ai_agents {
+  database_type: "PostgreSQL"
+  note: "Schema for a platform where users can create custom AI agents with prompts and tools."
+}
+
+Table users {
+  id ULID [pk]
+  email varchar [not null, unique]
+  password_hash varchar [not null]
+  created_at timestamp [default: `now()`]
+}
+
+Table agents {
+  id ULID [pk]
+  user_id ULID [ref: > users.id]
+  name varchar [not null]
+  welcome_message varchat [not null]
+  description text
+  model varchar [not null]
+  visibility varchar [note: "private, public, unlisted"]
+  created_at timestamp [default: `now()`]
+}
+
+Table prompts {
+  id ULID [pk]
+  agent_id ULID [ref: > agents.id]
+  type varchar [note: "system, user, instruction"]
+  content text [not null]
+  "version" int [note: "Used if multiple prompts"]
+  created_at timestamp [default: `now()`]
+}
+
+Table tools {
+  id ULID [pk]
+  name varchar [not null, unique]
+  config_json jsonb
+  is_active boolean [default: true]
+}
+
+Table agent_tools {
+  id ULID [pk]
+  agent_id ULID [ref: > agents.id]
+  tool_id ULID [ref: > tools.id]
+  settings jsonb
+}
+
+Table conversations {
+  id ULID [pk]
+  agent_id ULID [ref: > agents.id]
+  user_id ULID [ref: > users.id]
+  title varchar
+  started_at timestamp [default: `now()`]
+  ended_at timestamp
+}
+
+Table messages {
+  id ULID [pk]
+  conversation_id ULID [ref: > conversations.id]
+  sender varchar [note: "user or agent"]
+  content text [not null]
+  created_at timestamp [default: `now()`]
+}
